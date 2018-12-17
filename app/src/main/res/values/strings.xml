@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">BBWebview</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="playButtonString">play</string>
+    <string name="pauseButtonString">pause</string>
+    <string name="duckDuckGoString">https://duckduckgo.com</string>
+
+</resources>

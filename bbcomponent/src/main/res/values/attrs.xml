@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+   <declare-styleable name="BBPlayer">
+       <attr name="publication" format="string" />
+       <attr name="vhost" format="string" />
+       <attr name="debug" format="boolean" />
+       <attr name="secure" format="boolean" />
+       <attr name="clipId" format="string" />
+       <attr name="playout" format="string" />
+       <attr name="assetType" format="enum|string">
+           <enum name="clip" value="0"/>
+           <enum name="cliplist" value="1"/>
+       </attr>
+   </declare-styleable>
+</resources>
