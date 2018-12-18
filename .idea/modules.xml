@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/BBWebview.iml" filepath="$PROJECT_DIR$/BBWebview.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AndroidPlayerSDK.iml" filepath="$PROJECT_DIR$/AndroidPlayerSDK.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/bbcomponent/bbcomponent.iml" filepath="$PROJECT_DIR$/bbcomponent/bbcomponent.iml" />
     </modules>
