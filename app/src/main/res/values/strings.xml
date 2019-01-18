@@ -6,6 +6,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="playButtonString">play</string>
     <string name="pauseButtonString">pause</string>
+    <string name="fullscreenButtonString">fullscreen</string>
     <string name="duckDuckGoString">https://duckduckgo.com</string>
 
 </resources>

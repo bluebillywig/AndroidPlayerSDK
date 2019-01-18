@@ -26,6 +26,5 @@ repositories {
 
 dependencies {
     implementation 'com.android.support:support-v13:28.0.0'
-//    implementation project(':bbcomponent')
-    implementation 'com.github.bluebillywig:BlueBillywigPlayerSDK:1.4.1'
+    implementation project(path: ':bbcomponent')
 }
