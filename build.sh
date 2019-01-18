@@ -31,6 +31,8 @@ zip -r Blue_Billywig_Android_Component-v$VERSION.zip BlueBillywigAndroidComponen
 cp app/build.gradle.orig app/build.gradle
 cp settings.gradle.orig settings.gradle
 
+sed -i '' -e "s/VERSION_NAME=.*/VERSION_NAME=$VERSION/" gradle.properties
+
 echo
 echo "To upload to the support site:"
 echo "scp Blue_Billywig_Android_Component-*.zip bb@52.31.254.189:/var/www/support.bluebillywig.com/supportdocs/"
