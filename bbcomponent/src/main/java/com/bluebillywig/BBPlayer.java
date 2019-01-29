@@ -469,7 +469,7 @@ public class BBPlayer extends WebView {
 		Map<String,String> arguments = new HashMap<>();
 		arguments.put("adsystem_idtype", "aaid");
 		arguments.put("adsystem_rdid", androidId);
-		arguments.put("adsystem_is_lat", "1");
+		arguments.put("adsystem_is_lat", "0");
 
 		Log.d("MainActivity", "Updating playout after user consent: " + arguments.toString());
 
