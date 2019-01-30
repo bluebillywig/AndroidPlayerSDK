@@ -47,7 +47,7 @@ import static android.provider.Settings.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.2";
+	public static String VERSION = "1.4.3";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
