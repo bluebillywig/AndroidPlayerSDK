@@ -1,53 +1,41 @@
 package com.bluebillywig;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.TypedArray;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
-import android.view.animation.Transformation;
 import android.view.animation.TranslateAnimation;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface; //Needed for android api > 16
 import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.AbsoluteLayout;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-import static android.provider.Settings.*;
-
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.3";
+	public static String VERSION = "1.4.4";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -175,7 +163,7 @@ public class BBPlayer extends WebView {
 		}
 		this.loadUrl(uri);
 
-		if( hasAdUnit ) {
+ 		if( hasAdUnit ) {
 			mediaclipUrl = baseUrl + "a/" + this.adUnit + ".json";
 		} else {
 			mediaclipUrl = baseUrl + "p/" + this.playout + "/" + this.assetType + "/" + this.clipId + ".json";
@@ -225,7 +213,7 @@ public class BBPlayer extends WebView {
 	 @param function Name of the function that will be called
 	 */
 	public String call( String function ){
-		return call( function, null, null );
+		return call( function, null, null, null );
 	}
 
 	/**
@@ -235,30 +223,57 @@ public class BBPlayer extends WebView {
 	 @param argument Argument that's needed in the function
 	 */
 	public String call( String function, String argument ){
-		return call( function, null, argument );
+		return call( function, null, argument, null );
 	}
 
-	/**
+    /**
+     Call a method on the player embedded in the webview
+     @see "https://support.bluebillywig.com/blue-billywig-v5-player/functions"
+     @param function Name of the function that will be called
+     @param argument Argument that's needed in the function
+     @param callbackFunction Callback that will receive the value[s]
+     */
+    public String call( String function, String argument, String callbackFunction ){
+        return call( function, null, argument, callbackFunction );
+    }
+
+
+    /**
 	 Call a method on the player embedded in the webview
 	 @see "https://support.bluebillywig.com/blue-billywig-v5-player/functions"
 	 @param function Name of the function that will be called
 	 @param arguments Arguments that are needed in the function
 	 */
 	public String call( String function, Map<String,String> arguments ){
-		return call( function, arguments, null );
+		return call( function, arguments, null, null );
 	}
 
+    /**
+     Call a method on the player embedded in the webview
+     @see "https://support.bluebillywig.com/blue-billywig-v5-player/functions"
+     @param function Name of the function that will be called
+     @param arguments Arguments that are needed in the function
+     @param callbackFunction Callback that will receive the value[s]
+     */
+    public String call( String function, Map<String,String> arguments, String callbackFunction ){
+        return call( function, arguments, null, callbackFunction );
+    }
 
-	private String call( String function, Map<String,String> arguments, String argument ){
+	private String call( String function, Map<String,String> arguments, String argument, String callbackFunction ){
 
 		Calendar c = Calendar.getInstance();
-		String identifier = "" + c.getTimeInMillis();
+		String identifier = "" + c.getTimeInMillis() + ":" + callbackFunction;
 
 		String jsonString = null;
 
 		if( function.contains("(") && function.endsWith(")") ){
 			function = function.replace("()", "");
 		}
+
+		if (callbackFunction != null) {
+            Object[] eventArray = {parent, false, function, String.class};
+            eventMap.put(callbackFunction, eventArray);
+        }
 
 		if( arguments != null ){
 			JSONObject jsonArguments = new JSONObject();
@@ -537,6 +552,11 @@ public class BBPlayer extends WebView {
 				else if( function.contentEquals("BBPlayerReturnValues") ){
 					if( arguments.length > 1 ){
 						BBPlayerReturnValues.put(arguments[0], arguments[1]);
+
+						if (arguments[0].contains(":")) {
+                            String parentFunction = arguments[0].split(":", 2)[1].replace("'", "");
+                            this.callParent(parentFunction, arguments);
+                        }
 					}
 				}
 				else if( function.contentEquals("appbridgeready") ){
@@ -588,43 +608,84 @@ public class BBPlayer extends WebView {
 									webView.evaluateJavascript(  javascriptUrl( "bbAppBridge.on('" + eventValue[2] + "','" + keyString + "');" ), null );
 								}
 							});
-
 						}
 					}
-
-
 				}
 				else if( eventMap.containsKey(function) ){
-					Object[] array = eventMap.get(function);
-					Object parent = array[0];
-					Class[] paramTypes = null;
-					Object params = null;
+					this.callParent(function, arguments);
+				}
+			}
+		}
 
-					if (arguments != null && arguments.length > 1 && arguments[0] != null && arguments[0].equals("loadedAdPlayoutData")) {
-						Gson gson = new Gson();
+		private void callParent(String function, String[] arguments) {
+			Object[] array = eventMap.get(function);
+			if (array == null) {
+				return;
+			}
 
-						paramTypes = new Class[1];
-						paramTypes[0] = Playout.class;
-						params = gson.fromJson(arguments[1], Playout.class);
-					}
-					if( parent != null ){
+			Object parent = array[0];
+			Class[] paramTypes = null;
+			Object params = null;
+			if (array.length > 3) {
+				paramTypes = new Class[]{ (Class)array[3] };
+				if (arguments.length > 1) {
+					params = arguments[1];
+				}
+			}
+
+			Log.i("BBPlayer_return","Trying to call function " + function);
+
+			if (arguments != null && arguments.length > 1 && arguments[0] != null) {
+				paramTypes = new Class[1];
+
+				if (arguments[0].equals("loadedAdPlayoutData")) {
+					Gson gson = new Gson();
+
+					paramTypes[0] = Playout.class;
+					params = gson.fromJson(arguments[1], Playout.class);
+				} else {
+					paramTypes[0] = Object.class;
+
+                    if (arguments[1].startsWith("{")) {
 						try {
-							Method method = parent.getClass().getMethod(function, paramTypes);
-							if (params == null) {
-								method.invoke(parent, (Object[]) params);
-							} else {
-								method.invoke(parent, params);
-							}
-						} catch (NoSuchMethodException e) {
-							Log.e("BBPlayer","Trying to call a non existant method",e);
-						} catch (IllegalAccessException e) {
-							Log.e("BBPlayer","Exception caught",e);
-						} catch (IllegalArgumentException e) {
-							Log.e("BBPlayer","Exception caught",e);
-						} catch (InvocationTargetException e) {
-							Log.e("BBPlayer","Exception caught",e);
+							params = new JSONObject(arguments[1]);
+						} catch (JSONException e) {
+							e.printStackTrace();
 						}
+					} else if (arguments[1].startsWith("[")) {
+						try {
+							params = new JSONArray(arguments[1]);
+						} catch (JSONException e) {
+							e.printStackTrace();
+						}
+					} else {
+						params = arguments[1];
+                    }
+
+				}
+
+			}
+			if( parent != null ){
+				try {
+					Method method;
+					if (paramTypes == null) {
+						method = parent.getClass().getMethod(function);
+					} else {
+						method = parent.getClass().getMethod(function, paramTypes);
 					}
+					if (params == null) {
+						method.invoke(parent, (Object[]) params);
+					} else {
+						method.invoke(parent, params);
+					}
+				} catch (NoSuchMethodException e) {
+					Log.e("BBPlayer","Trying to call a non existant method",e);
+				} catch (IllegalAccessException e) {
+					Log.e("BBPlayer","Exception caught",e);
+				} catch (IllegalArgumentException e) {
+					Log.e("BBPlayer","Exception caught",e);
+				} catch (InvocationTargetException e) {
+					Log.e("BBPlayer","Exception caught",e);
 				}
 			}
 		}

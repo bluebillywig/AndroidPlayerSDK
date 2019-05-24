@@ -1,7 +1,6 @@
 package com.bluebillywig.bbwebview;
 
 import android.app.Activity;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -18,6 +17,12 @@ import com.bluebillywig.BBComponent;
 import com.bluebillywig.BBPlayer;
 import com.bluebillywig.BBPlayerSetup;
 
+import android.support.constraint.ConstraintLayout;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 public class MainActivity extends Activity implements View.OnTouchListener {
     private WebView mainWebView;
@@ -25,6 +30,8 @@ public class MainActivity extends Activity implements View.OnTouchListener {
     private LinearLayout buttonLayout;
     private boolean useAdvertisment = false;
     private BBPlayer.Playout playout = null;
+
+    private float aspectRatio = 0.0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,12 +89,20 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         BBPlayerSetup playerSetup = new BBPlayerSetup();
         playerSetup.setPlayout("androidapp");
 //        playerSetup.setAdunit("companion_ad_test");
+//        playerSetup.setAdunit("companion_ad_vertical_test");
 
         Log.d("MainActivity", "Sending setup: " + playerSetup);
 
         // Creating player with mediaclip with id 2119201
         String mediaclipId = "2119201";
-//        mediaclipId = "1081520";
+        // To test with vertical video
+        mediaclipId = "2766042";
+
+
+        // bb.dev test clips
+        // mediaclipId = "1081520";
+        // To test with vertical video
+        // mediaclipId = "1076954"; // vertical video
 
         webView = bbComponent.createPlayer(this, mediaclipId, playerSetup);
 
@@ -123,6 +138,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         webView.on("play",this,"onPlay");
         webView.on("fullscreen",this,"fullscreen");
         webView.on("retractFullscreen",this,"retractFullscreen");
+        webView.on("resized", this, "resized");
 
         // These are specific events for Ad usage
         webView.on("adstarted", this, "adStarted");
@@ -130,7 +146,9 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         webView.onLoadedPlayoutData(this, "loadedAdPlayoutData");
 
         webView.on("started", this, "started");
+
         webView.on("loadedclipdata", this, "started");
+
     }
 
     public void onPlay(){
@@ -148,6 +166,55 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
     public void started() {
         Log.d("MainActivity","Mediaclip started");
+    }
+
+    public void resized() {
+        Log.d("MainActivity","Player resized");
+        mainWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.call("getDimensions", "", "getDimensions" );
+            }
+        });
+    }
+
+    public void getDimensions(Object result) {
+        Log.d("MainActivity","Player dimensions: " + result);
+        if (result instanceof JSONObject) {
+            JSONObject json = (JSONObject)result;
+            try {
+                final int width = json.getInt("width");
+                final int height = json.getInt("height");
+
+                if (width > 0 && height > 0) {
+                    final float aspectRatio = (float)height / width;
+                    if (aspectRatio > 0 && this.aspectRatio != aspectRatio) {
+                        this.aspectRatio = aspectRatio;
+                        mainWebView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                ConstraintLayout.LayoutParams layoutParams = (ConstraintLayout.LayoutParams)mainWebView.getLayoutParams();
+                                layoutParams.dimensionRatio = "H," + width + ":" + height;
+                                Log.d("MainActivity", "set dimension to: H," + width + ":" + height);
+                                mainWebView.setLayoutParams(layoutParams);
+                            }
+                        });
+                    }
+                }
+            } catch (JSONException e) {
+                // Json parsing problem occurred
+            }
+        }
+
+        // The following else statements are just an example, getDimensions will always return an JSONObject
+        /*
+        else if (result instanceof JSONArray) {
+            JSONArray json = (JSONArray)result;
+        }
+        else {
+            String value = (String)result;
+        }
+        */
     }
 
     public void adStarted() {
