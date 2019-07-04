@@ -35,7 +35,7 @@ import java.util.HashMap;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.4";
+	public static String VERSION = "1.4.5";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
