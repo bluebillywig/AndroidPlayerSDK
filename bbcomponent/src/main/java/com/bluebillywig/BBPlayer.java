@@ -57,6 +57,7 @@ public class BBPlayer extends WebView {
 	private boolean playerReady = false;
 
 	private Context parent;
+	private Context callbackParent = null;
 
 	public class Playout {
 		public String autoPlay = "false";
@@ -259,6 +260,14 @@ public class BBPlayer extends WebView {
         return call( function, arguments, null, callbackFunction );
     }
 
+	/**
+	 * Use a different parent for the call functions callback
+	 * @param context The context of the parent that will receive the callback
+	 */
+	public void setCallbackParent(Context context) {
+		callbackParent = context;
+	}
+
 	private String call( String function, Map<String,String> arguments, String argument, String callbackFunction ){
 
 		Calendar c = Calendar.getInstance();
@@ -270,8 +279,13 @@ public class BBPlayer extends WebView {
 			function = function.replace("()", "");
 		}
 
+		Context context = parent;
+		if (callbackParent != null) {
+			context = callbackParent;
+		}
+
 		if (callbackFunction != null) {
-            Object[] eventArray = {parent, false, function, String.class};
+            Object[] eventArray = {context, false, function, String.class};
             eventMap.put(callbackFunction, eventArray);
         }
 
