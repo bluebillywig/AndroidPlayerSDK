@@ -1,11 +1,20 @@
 package com.bluebillywig;
 
 public class BBPlayerSetup {
+	private boolean showCommercials = true;
 	private boolean debug = false;
 	private String playout = "default";
 	private String adUnit = "";
 	private String assetType = "c";
 	private String parameter = "";
+
+	public void setShowCommercials(boolean showCommercials) {
+		this.showCommercials = showCommercials;
+	}
+
+	public boolean getShowCommercials() {
+		return this.showCommercials;
+	}
 
 	public void setDebug(boolean debug) {
 		this.debug = debug;

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -14,6 +15,7 @@ import android.view.animation.TranslateAnimation;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface; //Needed for android api > 16
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
@@ -33,9 +35,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import static android.os.Build.*;
+
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.5";
+	public static String VERSION = "1.4.6";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -116,21 +120,38 @@ public class BBPlayer extends WebView {
 		});
 
 		this.setWebViewClient(new WebViewClient(){
+			@RequiresApi(VERSION_CODES.KITKAT)
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url){
-                Log.d("setWebViewClient","url override" + url);
-                if (webView.hasAdUnit) {
-                    if (!(url.contains("bbvms.com") || url.contains("mainroll.com"))) {
-                        Intent intent = new Intent("android.intent.action.VIEW", Uri.parse(url));
-                        Bundle b = new Bundle();
-                        b.putBoolean("new_window", true); //sets new window
-                        intent.putExtras(b);
-                        parent.startActivity(intent);
-                        return true;
-                    }
-                }
-                return false;
+                Log.d("setWebViewClient","url override " + url);
+                return handleUrl(url);
             }
+
+			@RequiresApi(VERSION_CODES.N)
+			@Override
+			public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+				final Uri uri = request.getUrl();
+				return handleUrl(uri.toString());
+			}
+
+			private boolean handleUrl(String url) {
+				Log.d("setWebViewClient","url override " + url);
+				if (webView.hasAdUnit) {
+					if (!(url.contains("bbvms.com") || url.contains("mainroll.com"))) {
+						Intent intent = new Intent("android.intent.action.VIEW", Uri.parse(url));
+						Bundle b = new Bundle();
+						b.putBoolean("new_window", true); //sets new window
+						intent.putExtras(b);
+						parent.startActivity(intent);
+						return true;
+					}
+				} else {
+					if (url.startsWith("http:")) {
+						webView.loadUrl(url.replaceAll("^http:", "https:"));
+					}
+				}
+				return false;
+			}
 
             @Override
 			public void onReceivedError(WebView view, int errorCode, String description, String failingUrl ){
@@ -168,6 +189,10 @@ public class BBPlayer extends WebView {
 			mediaclipUrl = baseUrl + "a/" + this.adUnit + ".json";
 		} else {
 			mediaclipUrl = baseUrl + "p/" + this.playout + "/" + this.assetType + "/" + this.clipId + ".json";
+		}
+
+		if (!setup.getShowCommercials()) {
+			mediaclipUrl += "?commercials=false";
 		}
 	}
 
@@ -488,17 +513,36 @@ public class BBPlayer extends WebView {
 		return false;
 	}
 
-	/**
-	 * Call this function when the user has given permission to show personalised ads
-	 */
+	public void showCommercials(boolean showCommercials) {
+		Map<String,String> arguments = new HashMap<>();
+		if (showCommercials) {
+			arguments.put("commercials", "true");
+		} else {
+			arguments.put("commercials", "false");
+		}
 
-	public void adConsentFromUser() {
+		if( playerReady ) {
+			this.call("updatePlayout", arguments);
+		}
+		else{
+			addFunctionLate("updatePlayout", arguments);
+		}
+	}
+
+	/**
+	 * Call this function to consent or not consent to show personalised ads
+	 */
+	public void adConsentFromUser(boolean consent) {
 		String androidId = Settings.Secure.getString(this.parent.getContentResolver(), Settings.Secure.ANDROID_ID);
 
 		Map<String,String> arguments = new HashMap<>();
 		arguments.put("adsystem_idtype", "aaid");
 		arguments.put("adsystem_rdid", androidId);
-		arguments.put("adsystem_is_lat", "0");
+		if (consent) {
+			arguments.put("adsystem_is_lat", "0");
+		} else {
+			arguments.put("adsystem_is_lat", "1");
+		}
 
 		Log.d("MainActivity", "Updating playout after user consent: " + arguments.toString());
 

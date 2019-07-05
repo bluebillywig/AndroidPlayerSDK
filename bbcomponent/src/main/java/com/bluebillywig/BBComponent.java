@@ -19,7 +19,6 @@ public class BBComponent {
 	
 	private String publication;
 	private String vhost;
-	private boolean secure;
 	private boolean debug;
 
 	/**
@@ -35,23 +34,11 @@ public class BBComponent {
 	 * Constructor to create BBComponent object
 	 * @param publication Publication of the VMS to be used
 	 * @param vhost Vhost of the publication, like "demo.bbvms.com"
-	 * @param secure VMS uses https secure connection
-	 */
-	public BBComponent( String publication, String vhost, boolean secure ) {
-		this( publication, vhost, secure, false );
-	}
-
-	/**
-	 * Constructor to create BBComponent object
-	 * @param publication Publication of the VMS to be used
-	 * @param vhost Vhost of the publication, like "demo.bbvms.com"
-	 * @param secure VMS uses https secure connection
 	 * @param debug Use debugging for development
 	 */
-	public BBComponent( String publication, String vhost, boolean secure, boolean debug ) {
+	public BBComponent( String publication, String vhost, boolean debug ) {
 		this.publication = publication;
 		this.vhost = vhost;
-		this.secure = secure;
 		this.debug = debug;
 	}
 
@@ -72,16 +59,13 @@ public class BBComponent {
 	 */
 	protected String createUri( String vhost, String component ){
 		StringBuffer uri = new StringBuffer();
-		uri.append("http");
+		uri.append("https://");
 	    
-	    if( secure ){
-	        uri.append("s");
-	    }	    
 	    if( component == null ){
-	        uri.append("://").append( vhost ).append("/");
+	        uri.append( vhost ).append("/");
 	    }
 	    else{
-	        uri.append("://").append( vhost ).append("/component?c=").append(component);
+	        uri.append( vhost ).append("/component?c=").append(component);
 
 	        if( debug ){
 	        	Calendar cal = Calendar.getInstance();

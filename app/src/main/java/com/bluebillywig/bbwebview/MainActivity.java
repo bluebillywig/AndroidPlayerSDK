@@ -82,7 +82,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         });
 
         // Creating BBComponent
-        BBComponent bbComponent = new BBComponent("demo", "demo.bbvms.com", true, false);
+        BBComponent bbComponent = new BBComponent("demo", "demo.bbvms.com", false);
 //        bbComponent = new BBComponent("bb.dev", "bb.dev.bbvms.com", true, false);
 
         // Creating player setup with "androidapp" playout
@@ -109,8 +109,8 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         // This initialization should be used for ads
         // webView = bbComponent.createPlayer(this, playerSetup);
 
-        // If the user has given permission for personalised ads, call the function below
-        webView.adConsentFromUser();
+        // If the user has given permission (or not) for personalised ads, call the function below
+        webView.adConsentFromUser(true);
 
         webView.setOnTouchListener(this);
 
