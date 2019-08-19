@@ -3,6 +3,7 @@ package com.bluebillywig;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -39,7 +40,7 @@ import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.6";
+	public static String VERSION = "1.4.7";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -117,6 +118,11 @@ public class BBPlayer extends WebView {
 				Log.d("console " + consoleMessage.messageLevel() + " message", consoleMessage.message());
 				return true;
 			}
+
+			@Override
+			public Bitmap getDefaultVideoPoster() {
+				return Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888);
+			}
 		});
 
 		this.setWebViewClient(new WebViewClient(){
@@ -145,11 +151,11 @@ public class BBPlayer extends WebView {
 						parent.startActivity(intent);
 						return true;
 					}
-				} else {
-					if (url.startsWith("http:")) {
-						webView.loadUrl(url.replaceAll("^http:", "https:"));
-					}
 				}
+				if (url.startsWith("http:")) {
+					webView.loadUrl(url.replaceAll("^http:", "https:"));
+				}
+
 				return false;
 			}
 
@@ -160,14 +166,14 @@ public class BBPlayer extends WebView {
 				if( debug ){
 					Log.d("BBPlayer","Received error: " + errorCode + " with description: " + description + " and url: " + failingUrl);
 				}
-
 			}
+
 		});
 
 		this.playout = setup.getPlayout();
 		this.assetType = setup.getAssetType();
 		this.clipId = clipId;
-		this.debug = setup.isDebug();
+		this.debug = setup.isDebug() || true;
 		this.parameter = setup.getParameter();
 		this.adUnit = setup.getAdunit();
 		if( this.adUnit.length() > 0 ) {
