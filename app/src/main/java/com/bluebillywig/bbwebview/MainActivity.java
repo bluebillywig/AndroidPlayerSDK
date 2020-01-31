@@ -11,6 +11,7 @@ import android.webkit.WebView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import com.bluebillywig.BBComponent;
@@ -19,7 +20,6 @@ import com.bluebillywig.BBPlayerSetup;
 
 import android.support.constraint.ConstraintLayout;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -32,6 +32,37 @@ public class MainActivity extends Activity implements View.OnTouchListener {
     private BBPlayer.Playout playout = null;
 
     private float aspectRatio = 0.0f;
+
+    private int APP_NORMAL_DISPLAY_MODE =  View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+    private int APP_IMMERSIVE_DISPLAY_MODE = APP_NORMAL_DISPLAY_MODE | View.SYSTEM_UI_FLAG_IMMERSIVE | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN;
+    private int APP_IMMERSIVE_STICKY_DISPLAY_MODE = APP_NORMAL_DISPLAY_MODE | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN;
+    private int APP_LEAN_BACK_DISPLAY_MODE = APP_NORMAL_DISPLAY_MODE | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN;
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            // For more information: https://developer.android.com/training/system-ui/immersive
+            View decorView = getWindow().getDecorView();
+
+            // Sticky immersive mode
+            decorView.setSystemUiVisibility( APP_IMMERSIVE_STICKY_DISPLAY_MODE );
+
+            // Immersive mode
+//            decorView.setSystemUiVisibility( APP_IMMERSIVE_DISPLAY_MODE );
+
+
+            // Lean back mode
+//            decorView.setSystemUiVisibility( APP_LEAN_BACK_DISPLAY_MODE );
+        }
+    }
+
+    // Shows the system bars by removing all the flags
+    // except for the ones that make the content appear under the system bars.
+    private void showSystemUI() {
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility( APP_NORMAL_DISPLAY_MODE );
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,11 +114,18 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
         // Creating BBComponent
         BBComponent bbComponent = new BBComponent("demo", "demo.bbvms.com", false);
-//        bbComponent = new BBComponent("bb.dev", "bb.dev.bbvms.com", true, false);
+//        bbComponent = new BBComponent("bb.dev", "bb.dev.bbvms.com", false);
 
         // Creating player setup with "androidapp" playout
         BBPlayerSetup playerSetup = new BBPlayerSetup();
         playerSetup.setPlayout("androidapp");
+
+        // Use this when using the android native skin and using the native fullscreen button
+        // The FrameLayout is defined in the activity_main.xml
+        FrameLayout fullscreenFrameLayout = (FrameLayout) findViewById(R.id.fullscreenFrameLayout);
+        playerSetup.setFullscreenFrameLayout(fullscreenFrameLayout);
+
+        playerSetup.setOpenAdsInNewWindow(true);
 //        playerSetup.setAdunit("companion_ad_test");
 //        playerSetup.setAdunit("companion_ad_vertical_test");
 
@@ -96,7 +134,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         // Creating player with mediaclip with id 2119201
         String mediaclipId = "2119201";
         // To test with vertical video
-        mediaclipId = "2766042";
+//        mediaclipId = "2766042";
 
 
         // bb.dev test clips
@@ -140,6 +178,10 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         webView.on("retractFullscreen",this,"retractFullscreen");
         webView.on("resized", this, "resized");
 
+        // When using fullscreenFrameLayout these callbacks are called when going to fullscreen and back
+        webView.on("fullscreenView",this,"fullscreenView");
+        webView.on("retractFullscreenView",this,"retractFullscreenView");
+
         // These are specific events for Ad usage
         webView.on("adstarted", this, "adStarted");
         webView.on("adfinished", this, "adFinished");
@@ -153,6 +195,16 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
     public void onPlay(){
         Log.d("MainActivity","onPlay event caught");
+    }
+
+    public void fullscreenView(){
+        // This is thrown when the player is placed inside the fullscreenFrameLayout
+        Log.d("MainActivity","fullscreenView event caught");
+    }
+
+    public void retractFullscreenView(){
+        // This is thrown when the player is removed from the fullscreenFrameLayout
+        Log.d("MainActivity","retractFullscreenView view event caught");
     }
 
     public void fullscreen(){

@@ -3,7 +3,6 @@ package com.bluebillywig;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -13,12 +12,11 @@ import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
-import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface; //Needed for android api > 16
-import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -29,10 +27,8 @@ import org.json.JSONObject;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -40,7 +36,7 @@ import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.7";
+	public static String VERSION = "1.4.11";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -57,6 +53,7 @@ public class BBPlayer extends WebView {
 	private String mediaclipUrl = "";
 	private String parameter = "";
 	private String adUnit = "";
+	private boolean openAdsInNewWindow = false;
 	private boolean hasAdUnit = false;
 
 	private boolean playerReady = false;
@@ -89,10 +86,12 @@ public class BBPlayer extends WebView {
 	}
 
 	@SuppressLint("SetJavaScriptEnabled")
-	private void initialize(Context context, String uri, String clipId, String baseUrl, BBPlayerSetup setup  ){
+	private void initialize(Context context, String uri, String clipId, String baseUrl, BBPlayerSetup setup){
 
 		webView = this;
 		parent = context;
+
+		FrameLayout fullscreenFrameLayout = setup.getFullscreenFrameLayout();
 
 		this.getSettings().setJavaScriptEnabled(true);
 		webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
@@ -112,18 +111,17 @@ public class BBPlayer extends WebView {
 			}
 		}
 
-		this.setWebChromeClient(new WebChromeClient() {
-			@Override
-			public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-				Log.d("console " + consoleMessage.messageLevel() + " message", consoleMessage.message());
-				return true;
-			}
+		// Class to handle javascript calls to the android application, the second argument
+		// is can be used directly from javascript with functions defined in the JavascriptAppInterface
+		// defined below
+		JavascriptAppInterface javascriptAppInterface = new JavascriptAppInterface( this.getContext() );
+		this.addJavascriptInterface(javascriptAppInterface, "NativeBridge");
 
-			@Override
-			public Bitmap getDefaultVideoPoster() {
-				return Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888);
-			}
-		});
+		if (fullscreenFrameLayout == null) {
+			this.setWebChromeClient(new com.bluebillywig.WebChromeClient());
+		} else {
+			this.setWebChromeClient(new WebChromeClientFullscreen(fullscreenFrameLayout, webView, javascriptAppInterface));
+		}
 
 		this.setWebViewClient(new WebViewClient(){
 			@RequiresApi(VERSION_CODES.KITKAT)
@@ -142,7 +140,7 @@ public class BBPlayer extends WebView {
 
 			private boolean handleUrl(String url) {
 				Log.d("setWebViewClient","url override " + url);
-				if (webView.hasAdUnit) {
+				if (webView.hasAdUnit || webView.openAdsInNewWindow) {
 					if (!(url.contains("bbvms.com") || url.contains("mainroll.com"))) {
 						Intent intent = new Intent("android.intent.action.VIEW", Uri.parse(url));
 						Bundle b = new Bundle();
@@ -173,17 +171,13 @@ public class BBPlayer extends WebView {
 		this.playout = setup.getPlayout();
 		this.assetType = setup.getAssetType();
 		this.clipId = clipId;
-		this.debug = setup.isDebug() || true;
+		this.debug = setup.isDebug();
 		this.parameter = setup.getParameter();
 		this.adUnit = setup.getAdunit();
+		this.openAdsInNewWindow = setup.getOpenAdsInNewWindow();
 		if( this.adUnit.length() > 0 ) {
 			this.hasAdUnit = true;
 		}
-
-		// Class to handle javascript calls to the android application, the second argument
-		// is can be used directly from javascript with functions defined in the JavascriptAppInterface
-		// defined below
-		this.addJavascriptInterface(new JavaScriptAppInterface( this.getContext() ), "NativeBridge");
 
 		if( debug ){
 			WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
@@ -211,6 +205,7 @@ public class BBPlayer extends WebView {
 	 */
 	public void on( String event, Object parent, String function ){
 		Object []eventArray = { parent, false, null };
+
 		if( playerReady ){
 			eventArray[1] = true;
 			this.loadUrl( javascriptUrl( "bbAppBridge.on('" + event + "','" + function + "');" ) );
@@ -570,10 +565,10 @@ public class BBPlayer extends WebView {
 	// This class is used to bind the javascript to java
 	// The functions defined by @JavascriptInterface can be called from javascript
 	// using the "NativeBridge". So NativeBridge.call( "function", args[], callbackFunction ).
-	private class JavaScriptAppInterface {
+	class JavascriptAppInterface {
 		Context mContext;
 
-		JavaScriptAppInterface(Context c) {
+		JavascriptAppInterface(Context c) {
 			mContext = c;
 		}
 
@@ -681,7 +676,7 @@ public class BBPlayer extends WebView {
 			}
 		}
 
-		private void callParent(String function, String[] arguments) {
+		void callParent(String function, String[] arguments) {
 			Object[] array = eventMap.get(function);
 			if (array == null) {
 				return;

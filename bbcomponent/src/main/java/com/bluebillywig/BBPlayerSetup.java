@@ -1,11 +1,15 @@
 package com.bluebillywig;
 
+import android.widget.FrameLayout;
+
 public class BBPlayerSetup {
 	private boolean showCommercials = true;
+	private FrameLayout fullscreenFrameLayout = null;
 	private boolean debug = false;
 	private String playout = "default";
 	private String adUnit = "";
 	private String assetType = "c";
+	private boolean openAdsInNewWindow = false;
 	private String parameter = "";
 
 	public void setShowCommercials(boolean showCommercials) {
@@ -51,9 +55,21 @@ public class BBPlayerSetup {
 	public String getParameter() { return parameter; }
 
 	public void setParameter(String parameter) { this.parameter = parameter; }
+
+	public boolean getOpenAdsInNewWindow() { return this.openAdsInNewWindow; }
+
+	public void setOpenAdsInNewWindow(boolean openAdsInNewWindow) { this.openAdsInNewWindow = openAdsInNewWindow; }
 	
 	@Override
 	public String toString(){
 		return "BBPlayerSetup: { playout:'" + getPlayout() + "', assetType:'" + getAssetType() + "' debug:" + (debug?"true":"false") + "', adunit:'" + getAdunit() + "'}";
+	}
+
+	public FrameLayout getFullscreenFrameLayout() {
+		return fullscreenFrameLayout;
+	}
+
+	public void setFullscreenFrameLayout(FrameLayout fullscreenFrameLayout) {
+		this.fullscreenFrameLayout = fullscreenFrameLayout;
 	}
 }
