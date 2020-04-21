@@ -18,7 +18,7 @@ import com.bluebillywig.BBComponent;
 import com.bluebillywig.BBPlayer;
 import com.bluebillywig.BBPlayerSetup;
 
-import android.support.constraint.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -189,7 +189,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
         webView.on("started", this, "started");
 
-        webView.on("loadedclipdata", this, "started");
+        webView.on("loadedclipdata", this, "onLoadedClipData");
 
     }
 
@@ -228,6 +228,31 @@ public class MainActivity extends Activity implements View.OnTouchListener {
                 webView.call("getDimensions", "", "getDimensions" );
             }
         });
+    }
+
+    public void onLoadedClipData() {
+        Log.d("MainActivity","onLoadedClipData");
+        mainWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.call("getClipData", "", "getClipdata" );
+            }
+        });
+    }
+
+    public void getClipdata(Object result) {
+        Log.d("MainActivity","clip data: " + result);
+        if (result instanceof JSONObject) {
+            JSONObject json = (JSONObject)result;
+            try {
+                final String title = json.getString("title");
+
+                Log.d("MainActivity","Title of clip is: " + title);
+
+            } catch (JSONException e) {
+                // Json parsing problem occurred
+            }
+        }
     }
 
     public void getDimensions(Object result) {

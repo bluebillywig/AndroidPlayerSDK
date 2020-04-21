@@ -3,16 +3,23 @@ package com.bluebillywig;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.RequiresApi;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.webkit.JavascriptInterface; //Needed for android api > 16
+import android.webkit.ValueCallback;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -56,7 +63,12 @@ public class BBPlayer extends WebView {
 	private boolean openAdsInNewWindow = false;
 	private boolean hasAdUnit = false;
 
+	private boolean hasInternet = false;
+	private JavascriptAppInterface javascriptAppInterface = null;
+
 	private boolean playerReady = false;
+	private boolean componentUrlLoaded = false;
+	private String componentUri = null;
 
 	private Context parent;
 	private Object callbackParent = null;
@@ -72,6 +84,56 @@ public class BBPlayer extends WebView {
 			return "autoPlay: " + autoPlay + ", startCollapsed: " + startCollapsed + ", hidePlayerOnEnd: " + hidePlayerOnEnd +
 					", interactivity_inView: " + interactivity_inView + ", interactivity_outView: " + interactivity_outView;
 		}
+	}
+
+	@SuppressLint("NewApi")
+	private void registerConnectivityNetworkMonitor(final Context context) { // For API 21 And Up
+
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+			Log.d("NetworkMonitor","Only works for Android Lollipop (21) and up" + url);
+			return;
+		}
+		Log.d("NetworkMonitor","Network monitor starting");
+
+		ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+		hasInternet = (networkInfo != null && networkInfo.isConnected() && networkInfo.isAvailable());
+
+		NetworkRequest.Builder builder = new NetworkRequest.Builder();
+
+		connectivityManager.registerNetworkCallback(
+			builder.build(),
+			new ConnectivityManager.NetworkCallback() {
+				/**
+				 * @param network
+				 */
+				@Override
+				public void onAvailable(Network network) {
+					Log.d("NetworkMonitor","Internet connection available");
+					hasInternet = true;
+					if (!componentUrlLoaded) {
+						Log.d("NetworkMonitor","Loading component url: " + componentUri);
+						webView.post(new Runnable() {
+							@Override
+							public void run() {
+								webView.loadUrl(componentUri);
+								componentUrlLoaded = true;
+							}
+						});
+					}
+				}
+
+				/**
+				 * @param network
+				 */
+				@Override
+				public void onLost(Network network) {
+					Log.d("NetworkMonitor","No internet connection available");
+					hasInternet = false;
+				}
+			}
+		);
 	}
 
 	private BBPlayer(Context context) {
@@ -93,8 +155,12 @@ public class BBPlayer extends WebView {
 
 		FrameLayout fullscreenFrameLayout = setup.getFullscreenFrameLayout();
 
+		this.registerConnectivityNetworkMonitor(context);
+
 		this.getSettings().setJavaScriptEnabled(true);
 		webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+
+		webView.setBackgroundColor(Color.parseColor("#000000"));
 
 		if(setup.isDebug() /* && Build.VERSION.SDK_INT >= KITKAT */ ) {
 			try {
@@ -114,7 +180,7 @@ public class BBPlayer extends WebView {
 		// Class to handle javascript calls to the android application, the second argument
 		// is can be used directly from javascript with functions defined in the JavascriptAppInterface
 		// defined below
-		JavascriptAppInterface javascriptAppInterface = new JavascriptAppInterface( this.getContext() );
+		javascriptAppInterface = new JavascriptAppInterface( this.getContext() );
 		this.addJavascriptInterface(javascriptAppInterface, "NativeBridge");
 
 		if (fullscreenFrameLayout == null) {
@@ -183,7 +249,12 @@ public class BBPlayer extends WebView {
 			WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
 			Log.d("BBPlayer","Loading url: " + uri);
 		}
-		this.loadUrl(uri);
+
+		this.componentUri = uri;
+		if (hasInternet) {
+			this.loadUrl(uri);
+			componentUrlLoaded = true;
+		}
 
  		if( hasAdUnit ) {
 			mediaclipUrl = baseUrl + "a/" + this.adUnit + ".json";
@@ -625,50 +696,7 @@ public class BBPlayer extends WebView {
 
 					playerReady = true;
 
-					webView.post(new Runnable() {
-						@Override
-						public void run() {
-							if( debug ){
-								Log.d("BBPlayer","Calling: ");
-							}
-							webView.evaluateJavascript( javascriptUrl( "bbAppBridge.placePlayer('" + mediaclipUrl + "');" ), null );
-
-							for( String callFunction: functionMap.keySet() ){
-								Object arguments = functionMap.get(callFunction);
-								callFunction = callFunction.replaceFirst("^[\\d]+\\-", "");
-								if( debug ){
-									Log.d("BBPlayer","Late loading function: " + callFunction + " with arguments: " + arguments );
-								}
-								if( arguments != null ) {
-									if( arguments instanceof String ){
-										webView.call( callFunction, (String)arguments );
-									}
-									else if( arguments instanceof HashMap ){
-										webView.call( callFunction, (HashMap)arguments );
-									}
-								} else {
-									webView.call( callFunction );
-								}
-							}
-						}
-					});
-
-					for( String key: eventMap.keySet() ){
-						final Object []eventValue = eventMap.get(key);
-
-						if( eventValue.length > 2 && eventValue[1] instanceof Boolean && !((Boolean)eventValue[1]) && eventValue[2] != null ){
-							if( debug ){
-								Log.d("BBPlayer","Late loading function callback: " + key + " attached to event: " + eventValue[2]);
-							}
-							final String keyString = key;
-							webView.post(new Runnable() {
-								@Override
-								public void run() {
-									webView.evaluateJavascript(  javascriptUrl( "bbAppBridge.on('" + eventValue[2] + "','" + keyString + "');" ), null );
-								}
-							});
-						}
-					}
+					this.initPlayer();
 				}
 				else if( eventMap.containsKey(function) ){
 					this.callParent(function, arguments);
@@ -748,6 +776,58 @@ public class BBPlayer extends WebView {
 				}
 			}
 		}
+
+		void initPlayer() {
+			webView.post(new Runnable() {
+				@Override
+				public void run() {
+					if (debug) {
+						Log.d("BBPlayer", "Calling: ");
+					}
+					webView.evaluateJavascript(javascriptUrl("bbAppBridge.placePlayer('" + mediaclipUrl + "');"), new ValueCallback<String>() {
+						@Override
+						public void onReceiveValue(String s) {
+							Log.d("--- BBPlayer --- ", s); // Prints: "this"
+						}
+					});
+
+					for (String callFunction : functionMap.keySet()) {
+						Object arguments = functionMap.get(callFunction);
+						callFunction = callFunction.replaceFirst("^[\\d]+\\-", "");
+						if (debug) {
+							Log.d("BBPlayer", "Late loading function: " + callFunction + " with arguments: " + arguments);
+						}
+						if (arguments != null) {
+							if (arguments instanceof String) {
+								webView.call(callFunction, (String) arguments);
+							} else if (arguments instanceof HashMap) {
+								webView.call(callFunction, (HashMap) arguments);
+							}
+						} else {
+							webView.call(callFunction);
+						}
+					}
+				}
+			});
+
+			for( String key: eventMap.keySet() ){
+				final Object []eventValue = eventMap.get(key);
+
+				if( eventValue != null && eventValue.length > 2 && eventValue[1] instanceof Boolean && !((Boolean)eventValue[1]) && eventValue[2] != null ){
+					if( debug ){
+						Log.d("BBPlayer","Late loading function callback: " + key + " attached to event: " + eventValue[2]);
+					}
+					final String keyString = key;
+					webView.post(new Runnable() {
+						@Override
+						public void run() {
+							webView.evaluateJavascript(  javascriptUrl( "bbAppBridge.on('" + eventValue[2] + "','" + keyString + "');" ), null );
+						}
+					});
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -773,7 +853,7 @@ public class BBPlayer extends WebView {
 				e.printStackTrace();
 			}
 		}
-	};
+	}
 
 	public void expand(final View v) {
 		this.expand(v, false);

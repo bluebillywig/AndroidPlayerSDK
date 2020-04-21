@@ -1,18 +1,9 @@
 package com.bluebillywig;
 
-import java.io.IOException;
 import java.util.Calendar;
 
-import com.bluebillywig.BBPlayerSetup;
-//import com.google.android.gms.ads.identifier.AdvertisingIdClient;
-//import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-//import com.google.android.gms.common.GooglePlayServicesRepairableException;
-
-import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.provider.Settings;
-import android.support.v4.content.ContextCompat;
+
 import android.util.Log;
 
 public class BBComponent {
@@ -103,7 +94,7 @@ public class BBComponent {
 			Log.d("BBComponent","Uri for player: " + uri);
 			setup.setDebug(debug);
 		}
-		
+
 		BBPlayer player = new BBPlayer(context, uri, clipId, baseUri, setup);
 		
 		return player;
