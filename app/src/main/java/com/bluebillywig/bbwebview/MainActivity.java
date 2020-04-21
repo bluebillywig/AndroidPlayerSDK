@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.bluebillywig.BBComponent;
 import com.bluebillywig.BBPlayer;
@@ -144,6 +145,10 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
         webView = bbComponent.createPlayer(this, mediaclipId, playerSetup);
 
+        if (!webView.isNetworkAvailable()) {
+            Toast.makeText(this, "No internet connection available", Toast.LENGTH_SHORT).show();
+        }
+
         // This initialization should be used for ads
         // webView = bbComponent.createPlayer(this, playerSetup);
 
@@ -191,6 +196,10 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
         webView.on("loadedclipdata", this, "onLoadedClipData");
 
+    }
+
+    public void onNetworkChange(boolean hasInternet) {
+        Log.d("MainActivity","on network change event caught; is network available ? " + (hasInternet ? "yes" : "no"));
     }
 
     public void onPlay(){

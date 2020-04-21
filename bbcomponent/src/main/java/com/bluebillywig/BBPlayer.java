@@ -86,6 +86,10 @@ public class BBPlayer extends WebView {
 		}
 	}
 
+	public boolean isNetworkAvailable() {
+		return hasInternet;
+	}
+
 	@SuppressLint("NewApi")
 	private void registerConnectivityNetworkMonitor(final Context context) { // For API 21 And Up
 
@@ -112,6 +116,9 @@ public class BBPlayer extends WebView {
 				public void onAvailable(Network network) {
 					Log.d("NetworkMonitor","Internet connection available");
 					hasInternet = true;
+
+					callParentOnNetworkChange(true, boolean.class);
+
 					if (!componentUrlLoaded) {
 						Log.d("NetworkMonitor","Loading component url: " + componentUri);
 						webView.post(new Runnable() {
@@ -131,6 +138,22 @@ public class BBPlayer extends WebView {
 				public void onLost(Network network) {
 					Log.d("NetworkMonitor","No internet connection available");
 					hasInternet = false;
+					callParentOnNetworkChange(false, boolean.class);
+				}
+
+				void callParentOnNetworkChange(boolean hasInternet, Class clazz) {
+					try {
+						Method method = context.getClass().getMethod("onNetworkChange", boolean.class);
+						method.invoke(context, hasInternet);
+					} catch (NoSuchMethodException e) {
+						Log.e("BBPlayer","Trying to call a non existant method: onNetworkChange(boolean)",e);
+					} catch (IllegalAccessException e) {
+						Log.e("BBPlayer","Exception caught",e);
+					} catch (IllegalArgumentException e) {
+						Log.e("BBPlayer","Exception caught",e);
+					} catch (InvocationTargetException e) {
+						Log.e("BBPlayer","Exception caught",e);
+					}
 				}
 			}
 		);
