@@ -629,6 +629,7 @@ public class BBPlayer extends WebView {
 	 */
 	public void adConsentFromUser(boolean consent) {
 		String androidId = Settings.Secure.getString(this.parent.getContentResolver(), Settings.Secure.ANDROID_ID);
+		String buidString = this.parent.getPackageName(); // BuildConfig.APPLICATION_ID;
 
 		Map<String,String> arguments = new HashMap<>();
 		arguments.put("adsystem_idtype", "aaid");
@@ -638,6 +639,7 @@ public class BBPlayer extends WebView {
 		} else {
 			arguments.put("adsystem_is_lat", "1");
 		}
+		arguments.put("adsystem_buid", buidString);
 
 		Log.d("MainActivity", "Updating playout after user consent: " + arguments.toString());
 
