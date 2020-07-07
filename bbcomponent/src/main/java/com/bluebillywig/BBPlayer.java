@@ -288,6 +288,9 @@ public class BBPlayer extends WebView {
 		if (!setup.getShowCommercials()) {
 			mediaclipUrl += "?commercials=false";
 		}
+		if (setup.isDebug()) {
+			mediaclipUrl += ((mediaclipUrl.indexOf('?') > 0) ? "&" : "?") + "bbdebug=true";
+		}
 	}
 
 	/**
