@@ -93,6 +93,8 @@ public class BBComponent {
 		if( debug ){
 			Log.d("BBComponent","Uri for player: " + uri);
 			setup.setDebug(debug);
+			
+			uri += ((uri.indexOf('#') > 0) ? "&" : "#") + "_bbdebug=true"; // switches on player debugging
 		}
 
 		BBPlayer player = new BBPlayer(context, uri, clipId, baseUri, setup);
