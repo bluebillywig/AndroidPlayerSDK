@@ -101,5 +101,22 @@ public class BBComponent {
 		
 		return player;
 	}
+
+	/**
+	 * Create an empty BBplayer object that still has to be initialized
+	 * @param context Context of the activity that contains the BBPlayer object
+	 * @return BBPlayer object
+	 */
+	public BBPlayer createPlayer( Context context ){
+		String uri = createUri( this.vhost, "AndroidAppPlayer" );
+		String baseUri = createUri( this.vhost );
+
+		if( debug ){
+			Log.d("BBComponent","Uri for player: " + uri);
+			uri += ((uri.indexOf('#') > 0) ? "&" : "#") + "_bbdebug=true"; // switches on player debugging
+		}
+
+		return new BBPlayer(context, uri, baseUri);
+	}
 	
 }

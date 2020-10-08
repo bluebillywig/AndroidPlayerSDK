@@ -43,7 +43,7 @@ import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.12";
+	public static String VERSION = "1.4.15";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -51,6 +51,9 @@ public class BBPlayer extends WebView {
 	private Map<String,Object> functionMap = new LinkedHashMap<>();
 
 	private final static int KITKAT = 19;
+
+	private String lateUri = "";
+	private String lateBaseUri = "";
 
 	private boolean debug = false;
 	private String url = "";
@@ -163,11 +166,21 @@ public class BBPlayer extends WebView {
 		super(context);
 	}
 
-	protected BBPlayer(Context context, String uri, String clipId, String baseUrl, BBPlayerSetup setup  ){
+	protected BBPlayer(Context context, String uri, String baseUri) {
+		super(context);
+		lateUri = uri;
+		lateBaseUri = baseUri;
+	}
+
+	protected BBPlayer(Context context, String uri, String clipId, String baseUrl, BBPlayerSetup setup ){
 		super(context);
 		if(!isInEditMode()){
 			initialize(context, uri, clipId, baseUrl, setup);
 		}
+	}
+
+	public void initializeLate(Context context, String clipId, BBPlayerSetup setup ){
+		initialize(context, lateUri, clipId, lateBaseUri, setup);
 	}
 
 	@SuppressLint("SetJavaScriptEnabled")
@@ -269,7 +282,7 @@ public class BBPlayer extends WebView {
 		}
 
 		if( debug ){
-			WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
+			WebView.setWebContentsDebuggingEnabled(debug);
 			Log.d("BBPlayer","Loading url: " + uri);
 		}
 
