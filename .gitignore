@@ -1,0 +1,11 @@
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/caches
+.idea/gradle.xml
+.idea/libraries
+*.iws
+.gradle
+app/build
+Blue_Billywig_Android_Component-*.zip
