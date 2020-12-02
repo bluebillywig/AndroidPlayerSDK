@@ -43,7 +43,7 @@ import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.15";
+	public static String VERSION = "1.4.16";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
@@ -248,7 +248,12 @@ public class BBPlayer extends WebView {
 						Bundle b = new Bundle();
 						b.putBoolean("new_window", true); //sets new window
 						intent.putExtras(b);
-						parent.startActivity(intent);
+						try {
+							parent.startActivity(intent);
+						} catch(Exception e) {
+							Log.e("BBPlayer", e.getMessage());
+							e.printStackTrace();
+						}
 						return true;
 					}
 				}

@@ -7,5 +7,5 @@
 .idea/libraries
 *.iws
 .gradle
-app/build
+**/build
 Blue_Billywig_Android_Component-*.zip
