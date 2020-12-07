@@ -3,8 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AndroidPlayerSDK.iml" filepath="$PROJECT_DIR$/AndroidPlayerSDK.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/bbcomponent/bbcomponent.iml" filepath="$PROJECT_DIR$/bbcomponent/bbcomponent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidPlayerSDK.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidPlayerSDK.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/bbcomponent/AndroidPlayerSDK.bbcomponent.iml" filepath="$PROJECT_DIR$/.idea/modules/bbcomponent/AndroidPlayerSDK.bbcomponent.iml" />
     </modules>
   </component>
 </project>
