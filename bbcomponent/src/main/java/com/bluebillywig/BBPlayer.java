@@ -309,6 +309,26 @@ public class BBPlayer extends WebView {
 	}
 
 	/**
+	 Function to call when the webview is in view
+	 */
+	public void playerInView() {
+		this.call("setInView", "true");
+		if( debug ){
+			Log.d("BBPlayer","Player should be in view");
+		}
+	}
+
+	/**
+	 Function to call when the webview is out of view
+	 */
+	public void playerOutView() {
+		this.call("setInView", "false");
+		if( debug ){
+			Log.d("BBPlayer","Player should be out of view");
+		}
+	}
+
+	/**
 	 Function to attach to a player event, like fullscreen or playing
 	 @see "https://support.bluebillywig.com/blue-billywig-v5-player/events-modes-and-phases"
 	 @param event Event to attach to
