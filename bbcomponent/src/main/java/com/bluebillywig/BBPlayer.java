@@ -43,7 +43,7 @@ import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.16";
+	public static String VERSION = "1.4.17";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
