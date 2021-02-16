@@ -2,7 +2,7 @@
 rm -rf build
 mkdir build
 
-BBPLAYER=`find bbcomponent | grep BBPlayer.java`
+BBPLAYER=`find bbcomponent | grep BBPlayer.java\$`
 VERSION=`cat ${BBPLAYER} | grep 'String VERSION' | awk '{ print $6 }' | sed 's/[";]//g'`
 
 GRADLE_LOCATION="'com.github.bluebillywig:BlueBillywigPlayerSDK:$VERSION'"
@@ -16,8 +16,10 @@ rm Blue_Billywig_Android_Component-*.zip
 sed -i .orig "s/\(.*implementation \)project(path: ':bbcomponent').*/\1${GRADLE_LOCATION}/" app/build.gradle
 cat app/build.gradle | grep implementation
 sed -i .orig 's/,.*//' settings.gradle
+cp gradle.properties gradle.properties.orig
+echo "android.useAndroidX=true" > gradle.properties
 
-zip -r Blue_Billywig_Android_Component-v$VERSION.zip settings.gradle gradle build.gradle .idea/* app/libs app/app.iml app/build.gradle app/lint.xml app/src --exclude "*.DS_Store" --exclude "*modules.xml" --exclude "*workspace.xml" --exclude "*/libraries*" --exclude "*/caches*" > /dev/null 2>&1
+zip -r Blue_Billywig_Android_Component-v$VERSION.zip settings.gradle gradle.properties gradle build.gradle .idea/* app/libs app/app.iml app/build.gradle app/lint.xml app/src --exclude "*.DS_Store" --exclude "*modules.xml" --exclude "*workspace.xml" --exclude "*/libraries*" --exclude "*/caches*" > /dev/null 2>&1
 
 rm -rf BlueBillywigAndroidComponent
 mkdir BlueBillywigAndroidComponent
@@ -30,6 +32,7 @@ zip -r Blue_Billywig_Android_Component-v$VERSION.zip BlueBillywigAndroidComponen
 
 cp app/build.gradle.orig app/build.gradle
 cp settings.gradle.orig settings.gradle
+cp gradle.properties.orig gradle.properties
 
 sed -i '' -e "s/VERSION_NAME=.*/VERSION_NAME=$VERSION/" gradle.properties
 
@@ -37,7 +40,7 @@ sed -i '' -e "s/VERSION_NAME=.*/VERSION_NAME=$VERSION/" gradle.properties
 
 echo
 echo "To upload to the support site:"
-echo "scp Blue_Billywig_Android_Component-*.zip bb@web01.ovp.lan:/data/projects/support.bluebillywig.com/public/supportdocs/"
+echo "scp Blue_Billywig_Android_Component-*.zip bb@web01.ovp.lan:/data/projects/support.bluebillywig.com/public/supportdocs/Blue_Billywig_Android_Component_Latest.zip"
 echo "cd ../support.bluebillywig.com/supportdocs"
 echo "git rm Blue_Billywig_Android_Component-*.zip"
 echo "cd -"
