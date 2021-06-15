@@ -41,7 +41,7 @@ sed -i '' -e "s/VERSION_NAME=.*/VERSION_NAME=$VERSION/" gradle.properties
 
 echo
 echo "To upload to the support site:"
-echo "scp Blue_Billywig_Android_Component-*.zip bb@web01.ovp.lan:/data/projects/support.bluebillywig.com/public/supportdocs/Blue_Billywig_Android_Component_Latest.zip"
+echo "scp Blue_Billywig_Android_Component-*.zip bb@web01.ovp.lan:/data/projects/support.bluebillywig.com/public/supportdocs/"
 echo "cd ../support.bluebillywig.com/supportdocs"
 echo "git rm Blue_Billywig_Android_Component-*.zip"
 echo "cd -"
