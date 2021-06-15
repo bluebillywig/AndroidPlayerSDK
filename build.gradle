@@ -9,19 +9,25 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath 'com.android.tools.build:gradle:4.2.0'
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.15.1'
     }
 }
 
 allprojects {
     repositories {
-        jcenter()
+        mavenCentral()
         maven {
             url "https://maven.google.com"
         }
         maven {
             url 'https://maven.google.com/'
             name 'Google'
+        }
+    }
+    plugins.withId("com.vanniktech.maven.publish") {
+        mavenPublish {
+            sonatypeHost = "S01"
         }
     }
 }

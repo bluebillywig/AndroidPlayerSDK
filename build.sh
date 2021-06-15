@@ -37,6 +37,7 @@ cp gradle.properties.orig gradle.properties
 sed -i '' -e "s/VERSION_NAME=.*/VERSION_NAME=$VERSION/" gradle.properties
 
 ./gradlew bbcomponent:uploadArchives
+#./gradlew bbcomponent:uploadArchives --debug
 
 echo
 echo "To upload to the support site:"
