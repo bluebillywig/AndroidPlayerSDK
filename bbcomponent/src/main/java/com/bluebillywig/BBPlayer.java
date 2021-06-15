@@ -51,8 +51,6 @@ public class BBPlayer extends WebView {
 	private Map<String,Object[]> eventMap = new HashMap<>();
 	private Map<String,Object> functionMap = new LinkedHashMap<>();
 
-	private final static int KITKAT = 19;
-
 	private String lateUri = "";
 	private String lateBaseUri = "";
 
@@ -196,7 +194,7 @@ public class BBPlayer extends WebView {
 
 		webView.setBackgroundColor(Color.parseColor("#000000"));
 
-		if(setup.isDebug() /* && Build.VERSION.SDK_INT >= KITKAT */ ) {
+		if(setup.isDebug()) {
 			try {
 				Method method = this.getClass().getMethod("setWebContentsDebuggingEnabled", new Class[] { boolean.class });
 				method.invoke(this, true);
@@ -227,17 +225,10 @@ public class BBPlayer extends WebView {
 			@RequiresApi(VERSION_CODES.N)
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-				Log.d("setWebViewClient","url override > KITKAT " + url);
+				Log.d("setWebViewClient","url override " + url);
 				final Uri uri = request.getUrl();
 				return handleUrl(uri.toString());
 			}
-
-			@RequiresApi(VERSION_CODES.KITKAT)
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url){
-                Log.d("setWebViewClient","url override " + url);
-                return handleUrl(url);
-            }
 
 			private boolean handleUrl(String url) {
 				Log.d("setWebViewClient","url override " + url);
