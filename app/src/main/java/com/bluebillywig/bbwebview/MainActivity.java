@@ -24,6 +24,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import leakcanary.AppWatcher;
+
 
 public class MainActivity extends Activity implements View.OnTouchListener {
     private WebView mainWebView;
@@ -31,6 +33,9 @@ public class MainActivity extends Activity implements View.OnTouchListener {
     private LinearLayout buttonLayout;
     private boolean useAdvertisment = false;
     private BBPlayer.Playout playout = null;
+
+    private MainActivity mainActivity = null;
+    private String playoutName = "androidApp";
 
     private float aspectRatio = 0.0f;
 
@@ -73,43 +78,64 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         Button play = (Button)this.findViewById(R.id.play_button);
         Button pause = (Button)this.findViewById(R.id.pause_button);
         Button fullscreen = (Button)this.findViewById(R.id.fullscreen_button);
+        Button createPlayer = (Button)this.findViewById(R.id.create_button);
+        Button destroyPlayer = (Button)this.findViewById(R.id.destroy_button);
         final EditText text = (EditText)this.findViewById(R.id.edit_text);
         this.buttonLayout = (LinearLayout)this.findViewById(R.id.buttonLayout);
 
-        play.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                System.out.println("Play video was pressed");
-                // if the text field is filled in the playbutton will open the clip
-                if (text.getText().toString().equals("")) {
-                    // Call the play function
-                    webView.play();
-                } else {
-                    webView.loadClip(text.getText().toString());
-                    webView.loadUrl(text.getText().toString());
-                    webView.expand(mainWebView, true);
-                    hideKeyboard();
-                }
+        play.setOnClickListener(view -> {
+            System.out.println("Play video was pressed");
+            // if the text field is filled in the playbutton will open the clip
+            if (text.getText().toString().equals("")) {
+            // Call the play function
+                webView.play();
+            } else {
+                webView.loadClip(text.getText().toString());
+                webView.loadUrl(text.getText().toString());
+                webView.expand(mainWebView, true);
+                hideKeyboard();
             }
         });
 
-        pause.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                System.out.println("Pause video was pressed");
-                // Call the pause function
-                webView.pause();
+        pause.setOnClickListener(view -> {
+            System.out.println("Pause video was pressed");
+            // Call the pause function
+            webView.pause();
+        });
+
+        fullscreen.setOnClickListener(view -> {
+            System.out.println("Fullscreen button was pressed");
+            // Call the fullscreen function
+            webView.fullscreen();
+            buttonLayout.setVisibility( View.GONE );
+            webView.setLayoutMode(1);
+        });
+
+        createPlayer.setOnClickListener(view -> {
+            if (webView == null) {
+                BBPlayerSetup playerSetup = new BBPlayerSetup();
+                playerSetup.setPlayout(playoutName);
+
+                String mediaclipId = "2119201";
+
+                BBComponent bbComponent = new BBComponent("demo", "demo.bbvms.com", false);
+                webView = bbComponent.createPlayer(mainActivity, mediaclipId, playerSetup);
+
+                webView.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.MATCH_PARENT));
+
+                mainWebView.addView(webView);
+
+                webView.play();
             }
         });
 
-        fullscreen.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                System.out.println("Fullscreen button was pressed");
-                // Call the fullscreen function
-                webView.fullscreen();
-                buttonLayout.setVisibility( View.GONE );
-                webView.setLayoutMode(1);
+        destroyPlayer.setOnClickListener(view -> {
+            if (webView != null) {
+                mainWebView.removeAllViews();
+                webView.destroy();
+                webView = null;
             }
         });
 
@@ -117,9 +143,11 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         BBComponent bbComponent = new BBComponent("demo", "demo.bbvms.com", false);
 //        bbComponent = new BBComponent("bb.dev", "bb.dev.bbvms.com", false);
 
+        playoutName = "androidapp";
+
         // Creating player setup with "androidapp" playout
         BBPlayerSetup playerSetup = new BBPlayerSetup();
-        playerSetup.setPlayout("androidapp");
+        playerSetup.setPlayout(playoutName);
 
         // Use this when using the android native skin and using the native fullscreen button
         // The FrameLayout is defined in the activity_main.xml
@@ -144,6 +172,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         // mediaclipId = "1076954"; // vertical video
 
         webView = bbComponent.createPlayer(this, mediaclipId, playerSetup);
+        mainActivity = this;
 
         if (!webView.isNetworkAvailable()) {
             Toast.makeText(this, "No internet connection available", Toast.LENGTH_SHORT).show();
@@ -164,7 +193,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
 
         // Add player to main webview
         mainWebView = (WebView)findViewById(R.id.webView);
-        mainWebView.addView(webView, 0);
+        mainWebView.addView(webView);
 
         if (playerSetup.getAdunit() != null && playerSetup.getAdunit().length() > 0) {
             useAdvertisment = true;
@@ -176,6 +205,9 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         } else {
             webView.play();
         }
+
+        // Check to see if webview is garbage collected after pressing "destroy player"
+        AppWatcher.INSTANCE.getObjectWatcher().expectWeaklyReachable(webView, "Webview was detached");
 
         // This will catch onPlay events and send them to the onPlay callback function defined below
         webView.on("play",this,"onPlay");
@@ -195,7 +227,6 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         webView.on("started", this, "started");
 
         webView.on("loadedclipdata", this, "onLoadedClipData");
-
     }
 
     public void onNetworkChange(boolean hasInternet) {

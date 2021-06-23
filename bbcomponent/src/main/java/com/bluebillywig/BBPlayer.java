@@ -38,19 +38,18 @@ import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Objects;
 
 import static android.os.Build.*;
 
 public class BBPlayer extends WebView {
 
-	public static String VERSION = "1.4.17";
+	public static String VERSION = "1.4.18";
 
 	private BBPlayer webView;
 	private Map<String,String> BBPlayerReturnValues = new HashMap<>();
 	private Map<String,Object[]> eventMap = new HashMap<>();
 	private Map<String,Object> functionMap = new LinkedHashMap<>();
-
-	private final static int KITKAT = 19;
 
 	private String lateUri = "";
 	private String lateBaseUri = "";
@@ -76,6 +75,9 @@ public class BBPlayer extends WebView {
 	private Context parent;
 	private Object callbackParent = null;
 
+	private ConnectivityManager connectivityManager = null;
+	private ConnectivityManager.NetworkCallback networkCallback = null;
+
 	public class Playout {
 		public String autoPlay = "false";
 		public String startCollapsed = "false";
@@ -93,73 +95,67 @@ public class BBPlayer extends WebView {
 		return hasInternet;
 	}
 
-	@SuppressLint("NewApi")
 	private void registerConnectivityNetworkMonitor(final Context context) { // For API 21 And Up
 
-		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-			Log.d("NetworkMonitor","Only works for Android Lollipop (21) and up" + url);
-			return;
-		}
 		Log.d("NetworkMonitor","Network monitor starting");
 
-		ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+		connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
 		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 		hasInternet = (networkInfo != null && networkInfo.isConnected() && networkInfo.isAvailable());
 
 		NetworkRequest.Builder builder = new NetworkRequest.Builder();
 
-		connectivityManager.registerNetworkCallback(
-			builder.build(),
-			new ConnectivityManager.NetworkCallback() {
-				/**
-				 * @param network
-				 */
-				@Override
-				public void onAvailable(Network network) {
-					Log.d("NetworkMonitor","Internet connection available");
-					hasInternet = true;
+		networkCallback = new ConnectivityManager.NetworkCallback() {
+			/**
+			 * @param network
+			 */
+			@Override
+			public void onAvailable(Network network) {
+				Log.d("NetworkMonitor","Internet connection available");
+				hasInternet = true;
 
-					callParentOnNetworkChange(true, boolean.class);
+				callParentOnNetworkChange(true, boolean.class);
 
-					if (!componentUrlLoaded) {
-						Log.d("NetworkMonitor","Loading component url: " + componentUri);
-						webView.post(new Runnable() {
-							@Override
-							public void run() {
-								webView.loadUrl(componentUri);
-								componentUrlLoaded = true;
-							}
-						});
-					}
-				}
-
-				/**
-				 * @param network
-				 */
-				@Override
-				public void onLost(Network network) {
-					Log.d("NetworkMonitor","No internet connection available");
-					hasInternet = false;
-					callParentOnNetworkChange(false, boolean.class);
-				}
-
-				void callParentOnNetworkChange(boolean hasInternet, Class clazz) {
-					try {
-						Method method = context.getClass().getMethod("onNetworkChange", boolean.class);
-						method.invoke(context, hasInternet);
-					} catch (NoSuchMethodException e) {
-						Log.e("BBPlayer","Trying to call a non existant method: onNetworkChange(boolean)",e);
-					} catch (IllegalAccessException e) {
-						Log.e("BBPlayer","Exception caught",e);
-					} catch (IllegalArgumentException e) {
-						Log.e("BBPlayer","Exception caught",e);
-					} catch (InvocationTargetException e) {
-						Log.e("BBPlayer","Exception caught",e);
-					}
+				if (!componentUrlLoaded) {
+					Log.d("NetworkMonitor","Loading component url: " + componentUri);
+					webView.post(new Runnable() {
+						@Override
+						public void run() {
+							webView.loadUrl(componentUri);
+							componentUrlLoaded = true;
+						}
+					});
 				}
 			}
-		);
+
+			/**
+			 * @param network
+			 */
+			@Override
+			public void onLost(Network network) {
+				Log.d("NetworkMonitor","No internet connection available");
+				hasInternet = false;
+				callParentOnNetworkChange(false, boolean.class);
+			}
+
+			void callParentOnNetworkChange(boolean hasInternet, Class clazz) {
+				try {
+					Method method = context.getClass().getMethod("onNetworkChange", boolean.class);
+					method.invoke(context, hasInternet);
+				} catch (NoSuchMethodException e) {
+					Log.e("BBPlayer","Trying to call a non existant method: onNetworkChange(boolean)",e);
+				} catch (IllegalAccessException e) {
+					Log.e("BBPlayer","Exception caught",e);
+				} catch (IllegalArgumentException e) {
+					Log.e("BBPlayer","Exception caught",e);
+				} catch (InvocationTargetException e) {
+					Log.e("BBPlayer","Exception caught",e);
+				}
+			}
+		};
+
+		connectivityManager.registerNetworkCallback(builder.build(), networkCallback);
 	}
 
 	private BBPlayer(Context context) {
@@ -191,14 +187,14 @@ public class BBPlayer extends WebView {
 
 		FrameLayout fullscreenFrameLayout = setup.getFullscreenFrameLayout();
 
-		this.registerConnectivityNetworkMonitor(context);
+		this.registerConnectivityNetworkMonitor(parent);
 
 		this.getSettings().setJavaScriptEnabled(true);
 		webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
 		webView.setBackgroundColor(Color.parseColor("#000000"));
 
-		if(setup.isDebug() /* && Build.VERSION.SDK_INT >= KITKAT */ ) {
+		if(setup.isDebug()) {
 			try {
 				Method method = this.getClass().getMethod("setWebContentsDebuggingEnabled", new Class[] { boolean.class });
 				method.invoke(this, true);
@@ -226,16 +222,10 @@ public class BBPlayer extends WebView {
 		}
 
 		this.setWebViewClient(new WebViewClient(){
-			@RequiresApi(VERSION_CODES.KITKAT)
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url){
-                Log.d("setWebViewClient","url override " + url);
-                return handleUrl(url);
-            }
-
 			@RequiresApi(VERSION_CODES.N)
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+				Log.d("setWebViewClient","url override " + url);
 				final Uri uri = request.getUrl();
 				return handleUrl(uri.toString());
 			}
@@ -251,7 +241,7 @@ public class BBPlayer extends WebView {
 						try {
 							parent.startActivity(intent);
 						} catch(Exception e) {
-							Log.e("BBPlayer", e.getMessage());
+							Log.e("BBPlayer", Objects.requireNonNull(e.getMessage()));
 							e.printStackTrace();
 						}
 						return true;
@@ -306,6 +296,21 @@ public class BBPlayer extends WebView {
 		if (!setup.getShowCommercials()) {
 			mediaclipUrl += "?commercials=false";
 		}
+	}
+
+	@Override
+	public void destroy() {
+		Log.d("BBPlayer","Player is going to be destroyed");
+		this.removeJavascriptInterface("NativeBridge");
+		javascriptAppInterface = null;
+		if (networkCallback != null && connectivityManager != null) {
+			connectivityManager.unregisterNetworkCallback(networkCallback);
+			networkCallback = null;
+			connectivityManager = null;
+		}
+		parent = null;
+		callbackParent = null;
+		super.destroy();
 	}
 
 	/**
@@ -850,7 +855,7 @@ public class BBPlayer extends WebView {
 					webView.evaluateJavascript(javascriptUrl("bbAppBridge.placePlayer('" + mediaclipUrl + "');"), new ValueCallback<String>() {
 						@Override
 						public void onReceiveValue(String s) {
-							Log.d("--- BBPlayer --- ", s); // Prints: "this"
+								Log.d("--- BBPlayer --- ", s); // Prints: "this"
 						}
 					});
 
