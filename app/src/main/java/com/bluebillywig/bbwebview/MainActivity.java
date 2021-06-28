@@ -24,8 +24,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import leakcanary.AppWatcher;
-
 
 public class MainActivity extends Activity implements View.OnTouchListener {
     private WebView mainWebView;
@@ -207,7 +205,7 @@ public class MainActivity extends Activity implements View.OnTouchListener {
         }
 
         // Check to see if webview is garbage collected after pressing "destroy player"
-        AppWatcher.INSTANCE.getObjectWatcher().expectWeaklyReachable(webView, "Webview was detached");
+        Leakcanary.expectWeaklyReachable(webView, "Webview was detached");
 
         // This will catch onPlay events and send them to the onPlay callback function defined below
         webView.on("play",this,"onPlay");
